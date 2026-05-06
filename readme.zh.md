@@ -38,11 +38,15 @@
 
 1. **Arduino IDE**：安装 ESP32 开发板支持包（建议版本 2.0.x 或以上）。
 2. **开发板选择**：`ESP32S3 Dev Module`。
-3. **关键编译设置**：
-   * **USB CDC On Boot**: Enabled
-   * **Flash Size**: 32MB
-   * **PSRAM**: OPI PSRAM
-   * **Partition Scheme**: 16MB Flash (足够运行大容量 Web 服务器)
+3. **关键编译设置**：为确保固件能正确编译并运行，请在 Arduino IDE 的 `Tools`（工具）菜单中务必按照以下参数进行精确配置：
+   * **Board (开发板)**: `ESP32S3 Dev Module`
+   * **USB CDC On Boot**: `Disabled` 
+    > 📝 **说明**：本驱动板采用了 CH334 USB HUB + CH343 串口双芯片的高端设计。物理 Type-C 接口同时承载了硬件串口和原生 USB 通信。保持 Disabled 可以确保串口调试日志通过硬件芯片稳定输出，同时让原生 USB 接口专注于实现 U 盘管理模式。
+   * **Flash Size**: `32MB (256Mb)` 
+   * **Partition Scheme**: `Huge APP (3MB No OTA/1MB SPIFFS)`
+    > 📝 **说明**：由于固件内嵌了完整的 Web 管理后台代码及高分辨率状态图标库，编译后体积较大，普通的默认分区会报错。Huge APP 方案提供的 3MB 空间足以完美容纳本程序。
+   * **PSRAM**: `OPI PSRAM`
+    > ⚠️ **非常重要**：13.3 寸全彩墨水屏的分辨率高达 1600x1200，BMP 图像解码和颜色抖动渲染需要极大的运行内存。如果忘记开启 PSRAM，设备在处理图片时会因内存溢出 (OOM) 而崩溃重启。
 
 ## 📖 使用指南
 
@@ -70,19 +74,6 @@
 * **隐形字符报错**：如果你从外部复制 HTML/JS 代码到 `.h` 文件中，请务必使用纯文本编辑器检查并清除行首的 `NBSP`（不间断空格），否则 Arduino 编译器会提示不可见字符错误。
 * **屏幕保护机制**：彩色墨水屏长时间上电保持高压可能损坏膜片，本程序已在每次刷新完毕后强制控制屏幕及驱动板进入睡眠模式。建议至少每 24 小时让屏幕执行一次全局刷新以防止残影老化。
 
-
-## ⚙️ Arduino IDE Tools 核心设置项
-
-为确保固件能正确编译并运行，请在 Arduino IDE 的 `Tools`（工具）菜单中务必按照以下参数进行精确配置：
-
-* **Board (开发板)**: `ESP32S3 Dev Module`
-* **USB CDC On Boot**: `Disabled` 
-    > 📝 **说明**：本驱动板采用了 CH334 USB HUB + CH343 串口双芯片的高端设计。物理 Type-C 接口同时承载了硬件串口和原生 USB 通信。保持 Disabled 可以确保串口调试日志通过硬件芯片稳定输出，同时让原生 USB 接口专注于实现 U 盘管理模式。
-* **Flash Size**: `32MB (256Mb)` 
-* **Partition Scheme**: `Huge APP (3MB No OTA/1MB SPIFFS)`
-    > 📝 **说明**：由于固件内嵌了完整的 Web 管理后台代码及高分辨率状态图标库，编译后体积较大，普通的默认分区会报错。Huge APP 方案提供的 3MB 空间足以完美容纳本程序。
-* **PSRAM**: `OPI PSRAM`
-    > ⚠️ **非常重要**：13.3 寸全彩墨水屏的分辨率高达 1600x1200，BMP 图像解码和颜色抖动渲染需要极大的运行内存。如果忘记开启 PSRAM，设备在处理图片时会因内存溢出 (OOM) 而崩溃重启。
 
 ## 📄 许可证
 
