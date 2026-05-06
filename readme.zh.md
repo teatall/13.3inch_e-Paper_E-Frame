@@ -1,3 +1,5 @@
+🌍 [English](https://github.com/teatall/13.3inch_e-Paper_E-Frame) | 中文
+
 # ESP32-S3 13.3寸彩色墨水屏数字相框 (V1.1.1)
 
 这是一个基于 [ESP32-S3 开发的 13.3 英寸全彩电子纸（E-Paper）](https://www.waveshare.net/wiki/13.3inch_e-Paper_HAT+_(E)_Manual)数字相框开源项目。项目不仅支持本地 SD 卡图片循环播放，还内置了完整的 Web 管理后台，支持无线上传、在线裁剪、进度显示及系统时间自动同步。本项目由 Google Gemini 辅助完成。
