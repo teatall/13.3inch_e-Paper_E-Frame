@@ -54,7 +54,7 @@ YourWiFiPassword
 ```
 Insert the card and power on the device. Double-click the **BOOT button** to enter Management Mode. The device will automatically read and save the WiFi credentials to the internal non-volatile storage (NVS), and then immediately delete the plaintext file from the SD card for security.
 
-### 2. Button Interactions
+### 2. Button Interactions (Boot key)
 * **Single Click**: Force refresh and switch to the next image.
 * **Double Click**: Enter Management Mode (starts the Web Server and displays the current IP address on the screen).
 * **Long Press (5 seconds)**: Clear the screen and power off (enters deep sleep state).
