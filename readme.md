@@ -38,12 +38,15 @@ This is an open-source digital photo frame project based on the [ESP32-S3 and a 
 
 1. **Arduino IDE**: Install the ESP32 board support package (version 2.0.x or above recommended).
 2. **Board Selection**: `ESP32S3 Dev Module`.
-3. **Key Compile Settings**:
-   * **USB CDC On Boot**: Enabled *(See detailed tools section below)*
-   * **Flash Size**: 32MB
-   * **PSRAM**: OPI PSRAM
-   * **Partition Scheme**: 16MB Flash (Sufficient to run the large-capacity Web Server)
-
+3. **Key Compile Settings**: To ensure the firmware compiles and runs correctly, please configure the following parameters exactly as shown in the Arduino IDE `Tools` menu:
+   * **Board**: `ESP32S3 Dev Module`
+   * **USB CDC On Boot**: `Disabled` 
+    > 📝 **Note**: This driver board features an advanced dual-chip design with a CH334 USB HUB and a CH343 UART chip. The physical Type-C port handles both hardware UART and native USB communication simultaneously. Keeping this `Disabled` ensures that serial debug logs are stably output via the hardware chip, while allowing the native USB interface to focus solely on the USB Mass Storage (U-Disk) mode.
+   * **Flash Size**: `32MB (256Mb)` 
+   * **Partition Scheme**: `Huge APP (3MB No OTA/1MB SPIFFS)`
+    > 📝 **Note**: Because the firmware embeds the complete Web management backend code and high-resolution status icon libraries, the compiled binary is quite large. Standard default partitions will result in errors. The 3MB space provided by the Huge APP scheme is perfectly sufficient to accommodate this program.
+    * **PSRAM**: `OPI PSRAM`
+    > ⚠️ **CRITICAL**: The 13.3-inch full-color e-paper display has a high resolution of 1600x1200. BMP image decoding and color dithering rendering require massive amounts of RAM. If you forget to enable PSRAM, the device will crash and reboot due to an Out of Memory (OOM) error when processing images.
 ## 📖 Usage Guide
 
 ### 1. Initial Network Provisioning (Out-of-the-box)
@@ -69,19 +72,6 @@ Enter the IP address displayed on the device into your browser to:
 
 * **Invisible Character Errors**: If you copy HTML/JS code from external sources into the `.h` files, be sure to use a plain text editor to check for and remove any `NBSP` (non-breaking spaces) at the beginning of lines. Otherwise, the Arduino compiler will throw invisible character errors.
 * **Screen Protection Mechanism**: Keeping a color e-paper display powered under high voltage for extended periods can damage the film. This program forces the screen and driver board into sleep mode immediately after each refresh. It is recommended to perform a full screen refresh at least once every 24 hours to prevent ghosting and aging.
-
-## ⚙️ Arduino IDE Tools Core Settings
-
-To ensure the firmware compiles and runs correctly, please configure the following parameters exactly as shown in the Arduino IDE `Tools` menu:
-
-* **Board**: `ESP32S3 Dev Module`
-* **USB CDC On Boot**: `Disabled` 
-    > 📝 **Note**: This driver board features an advanced dual-chip design with a CH334 USB HUB and a CH343 UART chip. The physical Type-C port handles both hardware UART and native USB communication simultaneously. Keeping this `Disabled` ensures that serial debug logs are stably output via the hardware chip, while allowing the native USB interface to focus solely on the USB Mass Storage (U-Disk) mode.
-* **Flash Size**: `32MB (256Mb)` 
-* **Partition Scheme**: `Huge APP (3MB No OTA/1MB SPIFFS)`
-    > 📝 **Note**: Because the firmware embeds the complete Web management backend code and high-resolution status icon libraries, the compiled binary is quite large. Standard default partitions will result in errors. The 3MB space provided by the Huge APP scheme is perfectly sufficient to accommodate this program.
-* **PSRAM**: `OPI PSRAM`
-    > ⚠️ **CRITICAL**: The 13.3-inch full-color e-paper display has a high resolution of 1600x1200. BMP image decoding and color dithering rendering require massive amounts of RAM. If you forget to enable PSRAM, the device will crash and reboot due to an Out of Memory (OOM) error when processing images.
 
 ## 📄 License
 
