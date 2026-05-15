@@ -31,6 +31,7 @@ const char index_html[] PROGMEM = R"=====(
           </button>
         </div>
       </div>
+
       <div id="upload" class="content active">
         <div class="orientation-selector">
           <button class="orient-btn active" id="btnP" onclick="setMode('P')" data-i18n="optPortrait">Portrait</button>
@@ -46,16 +47,24 @@ const char index_html[] PROGMEM = R"=====(
         </div>
         <div class="action-group" id="actionGroup">
           <button class="btn-secondary" id="btnClear" onclick="resetImage()" data-i18n="btnClear">Clear</button>
-          <button class="btn" id="btnSave" onclick="processAndUpload()">
+          <button class="btn btn-primary" id="btnSave" onclick="processAndUpload()">
             <div class="upload-progress" id="saveProgress"></div>
             <span id="btnText" data-i18n="btnSave">Save</span>
           </button>
         </div>
       </div>
+
       <div id="gallery" class="content">
-        <h3 data-i18n="galleryHint" style="font-size: 1.1rem; margin-top: 0;">Photos on SD Card</h3>
+        <h3 data-i18n="galleryHint" id="galleryHint" style="font-size: 1.1rem; margin-top: 0;">Photos in Gallery</h3>
+        
+        <div id="batchToolbar" style="display: none;">
+          <button class="btn-secondary" id="btnSelectAll" onclick="toggleSelectAll()"></button>
+          <button id="btnBatchAction" class="btn-secondary" onclick="executeBatchAction()" style="display: none; color: #fff;"></button>
+        </div>
+
         <div id="imageList"><p style="color: #6c757d; font-size: 0.9rem;">Loading...</p></div>
       </div>
+
       <div id="settings" class="content">
         <div class="stat-group">
           <h3 data-i18n="sysStatus" style="font-size: 1.1rem; margin-top: 0;">System Status</h3>
@@ -75,19 +84,23 @@ const char index_html[] PROGMEM = R"=====(
         <button class="btn" id="btnSaveSet" onclick="saveSettings()" style="margin-top: 1rem;" data-i18n="btnSaveSettings">Save Settings</button>
       </div>
     </div>
+
     <div class="goodbye-screen" id="goodbyeScreen">
       <h2 data-i18n="goodbyeTitle">Management Mode Exited</h2>
       <p data-i18n="goodbyeText">The e-Paper is refreshing. You can safely close this page.</p>
     </div>
+
     <script>
       const dict = {
-        "en": { tabUpload: "Upload", tabGallery: "Gallery", tabSettings: "Settings", btnExit: "Exit", optLandscape: "Landscape", optPortrait: "Portrait", uploadHint: "Click or Drag & Drop Image Here", btnClear: "Clear", btnSave: "Save", galleryHint: "Photos on SD Card", btnDelete: "Delete", sysStatus: "System Status", lblVersion: "Firmware Version", lblBattery: "Battery", lblStorage: "Storage Usage", lblWifi: "WiFi Signal", playSettings: "Playback Settings", lblInterval: "Switch Interval", btnSaveSettings: "Save Settings", goodbyeTitle: "Exited", goodbyeText: "Refreshing screen. You can close this page.", timeOpts: ["10 Min", "30 Min", "1 Hour", "2 Hours", "3 Hours", "6 Hours", "12 Hours", "24 Hours"] },
-        "zh": { tabUpload: "上传", tabGallery: "照片列表", tabSettings: "设置", btnExit: "退出管理", optLandscape: "横向", optPortrait: "纵向", uploadHint: "点击或拖拽图片至此", btnClear: "清除", btnSave: "保存", galleryHint: "SD 卡内的照片", btnDelete: "删除", sysStatus: "系统状态", lblVersion: "系统版本号", lblBattery: "电池电量", lblStorage: "存储状况", lblWifi: "信号强度 (dBm)", playSettings: "播放设置", lblInterval: "换图间隔", btnSaveSettings: "保存设置", goodbyeTitle: "已退出管理模式", goodbyeText: "相框正在刷新屏幕。您可以关闭此页面。", timeOpts: ["10 分钟", "30 分钟", "1 小时", "2 小时", "3 小时", "6 小时", "12 小时", "24 小时"] }
+        "en": { tabUpload: "Upload", tabGallery: "Gallery", tabSettings: "Settings", btnExit: "Exit", optLandscape: "Landscape", optPortrait: "Portrait", uploadHint: "Click or Drag & Drop Image Here", btnClear: "Clear", btnSave: "Save", galleryHint: "Photos on SD Card", btnDelete: "Delete", sysStatus: "System Status", lblVersion: "Firmware Version", lblBattery: "Battery", lblStorage: "Storage Usage", lblWifi: "WiFi Signal", playSettings: "Playback Settings", lblInterval: "Switch Interval", btnSaveSettings: "Save Settings", goodbyeTitle: "Exited", goodbyeText: "Refreshing screen. You can close this page.", charging: "Charging", timeOpts: ["10 Min", "30 Min", "1 Hour", "2 Hours", "3 Hours", "6 Hours", "12 Hours", "24 Hours"] },
+        "zh": { tabUpload: "上传", tabGallery: "照片列表", tabSettings: "设置", btnExit: "退出管理", optLandscape: "横向", optPortrait: "纵向", uploadHint: "点击或拖拽图片至此", btnClear: "清除", btnSave: "保存", galleryHint: "已有照片", btnDelete: "删除", sysStatus: "系统状态", lblVersion: "系统版本号", lblBattery: "电池电量", lblStorage: "存储状况", lblWifi: "信号强度 (dBm)", playSettings: "播放设置", lblInterval: "换图间隔", btnSaveSettings: "保存设置", goodbyeTitle: "已退出管理模式", goodbyeText: "相框正在刷新屏幕。您可以关闭此页面。", charging: "充电中", timeOpts: ["10 分钟", "30 分钟", "1 小时", "2 小时", "3 小时", "6 小时", "12 小时", "24 小时"] }
       };
-      
+
       let currentLang = "en";
+      let selectedFiles = new Set(); // 新增：全局记录选中文件
+
       function initLang() { if ((navigator.language || '').toLowerCase().includes('zh')) currentLang = "zh"; applyLang(); }
-      function toggleLanguage() { currentLang = currentLang === "en" ? "zh" : "en"; applyLang(); }
+      function toggleLanguage() { currentLang = currentLang === "en" ? "zh" : "en"; applyLang(); updateBatchToolbar(); }
       function applyLang() { document.querySelectorAll('[data-i18n]').forEach(el => { const key = el.getAttribute('data-i18n'); el.innerText = dict[currentLang][key] || key; }); updateTimeText(); }
       
       function switchTab(id) {
@@ -98,19 +111,28 @@ const char index_html[] PROGMEM = R"=====(
         if(id === 'gallery') loadGallery();
         if(id === 'settings') loadSysInfo();
       }
-      
+
       function updateTimeText() { const slider = document.getElementById('timeSlider'); document.getElementById('timeValueDisplay').innerText = dict[currentLang].timeOpts[slider.value]; }
-      
+
       // ==========================================
-      // 🚀 极速加载与前端时间倒序
+      // 🚀 图库与多选逻辑
       // ==========================================
       function loadGallery() {
         const list = document.getElementById('imageList');
         list.innerHTML = '<p style="color: #6c757d; font-size: 0.9rem;">Loading files...</p>';
+        
+        // 重置选中状态并更新工具栏
+        selectedFiles.clear();
+        updateBatchToolbar();
+
         fetch('/api/list')
           .then(res => res.json())
           .then(data => {
-            if(data.length === 0) { list.innerHTML = '<p style="color: #6c757d;">No BMP files found.</p>'; return; }
+            if(data.length === 0) { 
+                list.innerHTML = '<p style="color: #6c757d;">No BMP files found.</p>'; 
+                updateBatchToolbar(); 
+                return; 
+            }
             list.innerHTML = '';
             data.sort((a, b) => b.time - a.time);
             data.forEach(file => {
@@ -125,6 +147,7 @@ const char index_html[] PROGMEM = R"=====(
               }
               row.innerHTML = `
                 <div class="img-info">
+                  <input class="img-checkbox" type="checkbox" name="gallery" value="${file.name}" onchange="handleSelection(this)">
                   <div class="thumb-preview" onclick="window.open('/api/img?name=${encodeURIComponent(file.name)}')">
                      ${thumbHTML}
                   </div>
@@ -137,41 +160,121 @@ const char index_html[] PROGMEM = R"=====(
               `;
               list.appendChild(row);
             });
+            updateBatchToolbar(); // 列表渲染完成后显示工具栏
           });
       }
-      
+
+      function handleSelection(cb) {
+        if (cb.checked) selectedFiles.add(cb.value);
+        else selectedFiles.delete(cb.value);
+        updateBatchToolbar();
+      }
+
+      function toggleSelectAll() {
+        const checkboxes = document.querySelectorAll('.img-checkbox');
+        if (selectedFiles.size === checkboxes.length && checkboxes.length > 0) {
+          checkboxes.forEach(cb => cb.checked = false);
+          selectedFiles.clear();
+        } else {
+          checkboxes.forEach(cb => { cb.checked = true; selectedFiles.add(cb.value); });
+        }
+        updateBatchToolbar();
+      }
+
+      function updateBatchToolbar() {
+        const tb = document.getElementById('batchToolbar');
+        const btnAction = document.getElementById('btnBatchAction');
+        const btnSelectAll = document.getElementById('btnSelectAll');
+        const total = document.querySelectorAll('.img-checkbox').length;
+
+        if (total === 0) { 
+          tb.style.display = 'none'; 
+          return; 
+        }
+        
+        tb.style.display = 'flex';
+        btnSelectAll.innerText = selectedFiles.size === total ? 
+          (currentLang === 'zh' ? '取消全选' : 'Deselect All') : 
+          (currentLang === 'zh' ? '全选' : 'Select All');
+
+        if (selectedFiles.size === 0) {
+          btnAction.style.display = 'none';
+        } else if (selectedFiles.size === 1) {
+          btnAction.style.display = 'block';
+          btnAction.innerText = currentLang === 'zh' ? '▶ 播放所选照片' : '▶ Play Selected';
+          btnAction.style.backgroundColor = 'var(--success)';
+          btnAction.style.color = '#fff';
+        } else {
+          btnAction.style.display = 'block';
+          btnAction.innerText = currentLang === 'zh' ? `删除所选 (${selectedFiles.size})` : `Delete Selected (${selectedFiles.size})`;
+          btnAction.style.backgroundColor = 'var(--danger)';
+          btnAction.style.color = '#fff';
+        }
+      }
+
+      function executeBatchAction() {
+        if (selectedFiles.size === 1) {
+          const name = Array.from(selectedFiles)[0];
+          fetch('/api/play_now?name=' + encodeURIComponent(name), { method: 'POST' })
+            .then(() => {
+              document.getElementById('appContainer').style.display = 'none';
+              document.getElementById('goodbyeScreen').style.display = 'block';
+            });
+        } else if (selectedFiles.size > 1) {
+          if (!confirm(currentLang === 'zh' ? '确定删除选中的照片吗？' : 'Delete selected photos?')) return;
+          const params = new URLSearchParams();
+          params.append('filenames', Array.from(selectedFiles).join(','));
+          fetch('/api/delete', { method: 'POST', body: params }).then(() => loadGallery());
+        }
+      }
+
       function deleteFile(name) {
-        if(!confirm(currentLang==='zh'?'确定要彻底删除这张照片吗？(含缩略图)':'Delete this photo and its thumbnail?')) return;
+        if(!confirm(currentLang==='zh'?'确定删除照片吗？':'Delete this photo?')) return;
         const params = new URLSearchParams(); params.append('filename', name);
         fetch('/api/delete', { method: 'POST', body: params }).then(() => loadGallery());
       }
-      
+
+      // ==========================================
+      // 系统功能交互逻辑
+      // ==========================================
       function loadSysInfo() {
         fetch('/api/sysinfo')
           .then(res => res.json())
           .then(data => {
             document.getElementById('versionVal').innerText = data.version;
-            document.getElementById('battVal').innerText = `${data.batt_v}V (${data.batt_pct}%)`;
+            const battEl = document.getElementById('battVal');
+            if (data.batt_pct > 100) {
+                battEl.innerText = `${data.batt_v}V (${dict[currentLang].charging})`;
+                battEl.style.color = "#28a745"; 
+                battEl.style.fontWeight = "bold";
+            } else {
+                battEl.innerText = `${data.batt_v}V (${data.batt_pct}%)`;
+                battEl.style.color = ""; 
+                battEl.style.fontWeight = "normal";
+            }
             document.getElementById('storageVal').innerText = `${data.sd_used} / ${data.sd_total} GB`;
             document.getElementById('wifiSignal').innerText = `${data.wifi_rssi} dBm`; 
             document.getElementById('timeSlider').value = data.interval_idx;
             updateTimeText();
           });
       }
-      
+
       function saveSettings() {
         const btn = document.getElementById('btnSaveSet');
         btn.innerText = '...';
         const params = new URLSearchParams(); params.append('interval', document.getElementById('timeSlider').value);
         fetch('/api/settings', { method: 'POST', body: params }).then(() => { btn.innerText = 'OK!'; setTimeout(()=>applyLang(), 2000); });
       }
-      
+
       function triggerExit() { 
         fetch('/api/exit', { method: 'POST' })
           .then(() => { document.getElementById('appContainer').style.display = 'none'; document.getElementById('goodbyeScreen').style.display = 'block'; })
           .catch(()=> { document.getElementById('appContainer').style.display = 'none'; document.getElementById('goodbyeScreen').style.display = 'block'; }); 
       }
-      
+
+      // ==========================================
+      // 图片处理与上传逻辑
+      // ==========================================
       const E6_PALETTE = [[0,0,0],[255,255,255],[255,255,0],[255,0,0],[0,0,255],[0,255,0]];
       let cropper = null, mode = 'P';
       const wrapper = document.getElementById('wrapper');
@@ -185,7 +288,6 @@ const char index_html[] PROGMEM = R"=====(
         if (cropper) cropper.setAspectRatio(m === 'L' ? 4 / 3 : 3 / 4); 
       }
       
-      // 🚀 修复 Bug：防止事件冒泡导致裁剪时弹窗
       hintArea.onclick = () => { fileInput.click(); };
       wrapper.onclick = (e) => { if (cropper) return; fileInput.click(); };
       fileInput.onchange = (e) => { if (e.target.files[0]) handleFile(e.target.files[0]); };
@@ -202,12 +304,12 @@ const char index_html[] PROGMEM = R"=====(
           cropper = new Cropper(img, { 
               aspectRatio: mode === 'L' ? 4 / 3 : 3 / 4, 
               viewMode: 1,
-              autoCropArea: 1 // 🚀 修复 Bug：裁剪框默认铺满全屏
+              autoCropArea: 1 
           });
         }; 
         reader.readAsDataURL(file); 
       }
-      
+
       function resetImage() {
         if (cropper) { cropper.destroy(); cropper = null; }
         document.getElementById('fileInput').value = '';
@@ -216,26 +318,21 @@ const char index_html[] PROGMEM = R"=====(
         hintArea.style.display = 'flex';
         wrapper.classList.add('empty-state');
       }
-      
+
       function syncDeviceTime() {
         const now = new Date();
         const params = new URLSearchParams({
             y: now.getFullYear(),
-            m: now.getMonth() + 1, // JS月份是 0-11
+            m: now.getMonth() + 1,
             d: now.getDate(),
             h: now.getHours(),
             min: now.getMinutes(),
             s: now.getSeconds()
         });
-        // 悄悄发送，不需要处理 response，不阻塞 UI
         fetch('/api/time?' + params.toString(), { method: 'POST' }).catch(()=>{});
       }
-      
-      // ==========================================
-      // 真实多文件流式上传逻辑
-      // ==========================================
+
       let savingInterval = null;
-      
       function setUploadingState(isUploading) {
         const btnSave = document.getElementById('btnSave');
         const btnClear = document.getElementById('btnClear');
@@ -260,24 +357,21 @@ const char index_html[] PROGMEM = R"=====(
           btnSave.innerText = dict[currentLang].btnSave; 
         }
       }
-      
-      // 带进度条的上传
+
       async function processAndUpload() {
         const btn = document.getElementById('btnSave');
         const btnText = document.getElementById('btnText');
         const progress = document.getElementById('saveProgress');
-        
         btn.disabled = true;
         progress.style.width = '0%';
         btnText.innerText = (currentLang === 'zh' ? '正在保存...' : 'Saving...');
-        
         try {
           const w = mode === 'L' ? 1600 : 1200, h = mode === 'L' ? 1200 : 1600;
           const cvs = cropper.getCroppedCanvas({ width: w, height: h });
           const imgData = cvs.getContext('2d').getImageData(0, 0, w, h);
+          brightenForEink(imgData);
           applyDither(imgData);
           const bmpBlob = createBMP(w, h, imgData.data);
-          
           const thumbBlob = await new Promise(resolve => {
              const tCvs = document.createElement('canvas');
              tCvs.width = mode === 'L' ? 160 : 120;
@@ -285,13 +379,10 @@ const char index_html[] PROGMEM = R"=====(
              tCvs.getContext('2d').drawImage(cvs, 0, 0, tCvs.width, tCvs.height);
              tCvs.toBlob(resolve, 'image/jpeg', 0.6); 
           });
-          
           const fileName = `E${Date.now()}`;
           const formData = new FormData();
           formData.append("file1", bmpBlob, `${fileName}.bmp`);
           formData.append("file2", thumbBlob, `${fileName}.jpg`);
-          
-          // 使用 XMLHttpRequest 以跟踪进度
           const xhr = new XMLHttpRequest();
           await new Promise((resolve, reject) => {
             xhr.upload.onprogress = (e) => {
@@ -305,11 +396,9 @@ const char index_html[] PROGMEM = R"=====(
             xhr.open('POST', '/api/upload');
             xhr.send(formData);
           });
-          
           btnText.innerText = (currentLang === 'zh' ? '成功!' : 'Success!');
           await new Promise(r => setTimeout(r, 1000));
           switchTab('gallery');
-          
         } catch (error) {
           alert("Upload failed: " + error.message);
         } finally {
@@ -319,7 +408,20 @@ const char index_html[] PROGMEM = R"=====(
           resetImage(); 
         }
       }
-      
+
+      function brightenForEink(imgData, gamma = 0.82) {
+        const { data } = imgData;
+        const lut = new Uint8Array(256);
+        for (let i = 0; i < 256; i++) {
+          lut[i] = Math.round(Math.pow(i / 255, gamma) * 255);
+        }
+        for (let i = 0; i < data.length; i += 4) {
+          data[i]     = lut[data[i]];
+          data[i + 1] = lut[data[i + 1]];
+          data[i + 2] = lut[data[i + 2]];
+        }
+      }
+
       function applyDither(imgData) {
         const { data, width, height } = imgData;
         const buffer = new Float32Array(data);
@@ -334,27 +436,27 @@ const char index_html[] PROGMEM = R"=====(
             }
             data[i] = best[0]; data[i + 1] = best[1]; data[i + 2] = best[2];
             const er = r - best[0], eg = g - best[1], eb = b - best[2];
-            const diff = (nx, ny, w) => { 
-              if (nx >= 0 && nx < width && ny < height) { 
+            const diff = (nx, ny) => {
+              if (nx >= 0 && nx < width && ny < height) {
                 const idx = (ny * width + nx) * 4;
-                buffer[idx] += er * w; buffer[idx + 1] += eg * w; buffer[idx + 2] += eb * w;
-              } 
+                buffer[idx]     += er * 0.125;
+                buffer[idx + 1] += eg * 0.125;
+                buffer[idx + 2] += eb * 0.125;
+              }
             };
-            diff(x + 1, y, 7 / 16); diff(x - 1, y + 1, 3 / 16);
-            diff(x, y + 1, 5 / 16); diff(x + 1, y + 1, 1 / 16);
+            diff(x + 1, y); diff(x + 2, y); diff(x - 1, y + 1);
+            diff(x,     y + 1); diff(x + 1, y + 1); diff(x,     y + 2);
           }
         }
       }
-      
+
       function createBMP(w, h, data) {
         const rowSize = Math.floor((w * 3 + 3) / 4) * 4;
         const size = 54 + rowSize * h;
         const buffer = new ArrayBuffer(size);
         const v = new DataView(buffer);
-        v.setUint8(0, 0x42);
-        v.setUint8(1, 0x4D); v.setUint32(2, size, true); v.setUint32(10, 54, true); v.setUint32(14, 40, true);
-        v.setInt32(18, w, true); v.setInt32(22, h, true); v.setUint16(26, 1, true);
-        v.setUint16(28, 24, true);
+        v.setUint8(0, 0x42); v.setUint8(1, 0x4D); v.setUint32(2, size, true); v.setUint32(10, 54, true); v.setUint32(14, 40, true);
+        v.setInt32(18, w, true); v.setInt32(22, h, true); v.setUint16(26, 1, true); v.setUint16(28, 24, true);
         let p = 54;
         for (let y = h - 1; y >= 0; y--) {
           for (let x = 0; x < w; x++) {
@@ -365,7 +467,7 @@ const char index_html[] PROGMEM = R"=====(
         }
         return new Blob([buffer], { type: "image/bmp" });
       }
-      
+
       window.onload = () => { initLang(); syncDeviceTime(); loadSysInfo(); };
     </script>
   </body>

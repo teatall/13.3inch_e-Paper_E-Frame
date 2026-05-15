@@ -10,6 +10,7 @@
 #include <sys/time.h>
 #include <Preferences.h>
 Preferences prefs;
+
 #include "images.h"
 #include <WiFi.h>
 #include <WebServer.h>
@@ -21,17 +22,23 @@ Preferences prefs;
 #include "usb_msc_driver.h"
 #include "USB.h"
 #include "USBMSC.h"
+
 USBMSC MSC;
 extern "C" bool tud_mounted(void);
 extern "C" bool tud_connected(void);
+
 WebServer server(80);
+
 // ==================== 系统配置与版本 ====================
-const char* FIRMWARE_VERSION = "v1.1.1";
-#define VOLTAGE_DIVIDER 3.29
+const char* FIRMWARE_VERSION = "v1.1.5";
+#define VOLTAGE_DIVIDER 3.263
+
 int image_index = 0;
 int sleep_interval_index = 2;
 const uint32_t INTERVAL_MAP[8] = { 600, 1800, 3600, 7200, 10800, 21600, 43200, 86400 };
+
 bool web_exit_request = false;
+
 SPIClass sdSPI(HSPI);
 #define SD_MISO 5
 #define SD_MOSI 7
@@ -39,35 +46,48 @@ SPIClass sdSPI(HSPI);
 #define SD_CS 15
 #define BOOT_BTN 0
 #define BAT_ADC_PIN 8
-#define LOW_BAT_THRESHOLD 15.0
+#define LOW_BAT_THRESHOLD 10.0
+#define CHARGE_STATE_PIN 38
+
 uint16_t SYS_WIDTH = 0;
 uint16_t SYS_HEIGHT = 0;
 uint8_t* EPD_Buffer = nullptr;
 bool need_rotate = false;
+
 struct FileRecord {
   String path;
   time_t modTime;
 };
+
 float getBatteryPercentage() {
-  uint32_t millivolts = analogReadMilliVolts(BAT_ADC_PIN);
-  float pin_voltage = millivolts / 1000.0;
-  float bat_voltage = pin_voltage * VOLTAGE_DIVIDER;
-  float percentage = 0.0;
-  if (bat_voltage >= 4.15) {
-    percentage = 100.0;
-  } else if (bat_voltage >= 4.00) {
-    percentage = 80.0 + ((bat_voltage - 4.00) / 0.15) * 20.0;
-  } else if (bat_voltage >= 3.75) {
-    percentage = 20.0 + ((bat_voltage - 3.75) / 0.25) * 60.0;
-  } else if (bat_voltage >= 3.30) {
-    percentage = ((bat_voltage - 3.30) / 0.45) * 20.0;
-  } else {
-    percentage = 0.0;
-  }
-  if (percentage > 100.0) percentage = 100.0;
-  if (percentage < 0.0) percentage = 0.0;
-  return percentage;
+    // 充电中不计算百分比
+    pinMode(CHARGE_STATE_PIN, INPUT_PULLUP);
+    if (digitalRead(CHARGE_STATE_PIN) == LOW) {
+        return 101.0f; // 调用方判断 >100 表示充电中
+    }
+    
+    // 多次采样取均值
+    uint32_t sum = 0;
+    const int SAMPLES = 16;
+    for (int i = 0; i < SAMPLES; i++) {
+        sum += analogReadMilliVolts(BAT_ADC_PIN);
+        delay(5);
+    }
+    float pin_voltage = (float)(sum / SAMPLES) / 1000.0f;
+    float bat_voltage = pin_voltage * VOLTAGE_DIVIDER;
+    Serial.printf("[BAT] pin=%.3fV  bat=%.3fV\n", pin_voltage, bat_voltage);
+    
+    float percentage;
+    if      (bat_voltage >= 4.20f) percentage = 100.0f;
+    else if (bat_voltage >= 4.00f) percentage = 80.0f + ((bat_voltage - 4.00f) / 0.20f) * 20.0f;
+    else if (bat_voltage >= 3.80f) percentage = 50.0f + ((bat_voltage - 3.80f) / 0.20f) * 30.0f;
+    else if (bat_voltage >= 3.60f) percentage = 20.0f + ((bat_voltage - 3.60f) / 0.20f) * 30.0f;
+    else if (bat_voltage >= 3.30f) percentage =          ((bat_voltage - 3.30f) / 0.30f) * 20.0f;
+    else                           percentage = 0.0f;
+    
+    return constrain(percentage, 0.0f, 100.0f);
 }
+
 void showStatusIconAndSleep(const unsigned char* icon_bmp) {
   uint32_t bufferSize = (SYS_WIDTH / 2) * SYS_HEIGHT;
   EPD_Buffer = (uint8_t*)ps_malloc(bufferSize);
@@ -85,10 +105,12 @@ void showStatusIconAndSleep(const unsigned char* icon_bmp) {
   esp_sleep_enable_ext0_wakeup((gpio_num_t)BOOT_BTN, 0);
   esp_deep_sleep_start();
 }
+
 void clearScreenAndShutdown() {
   pinMode(SD_CS, OUTPUT);
   digitalWrite(SD_CS, HIGH);
   delay(1000);
+
   uint32_t bufferSize = (SYS_WIDTH / 2) * SYS_HEIGHT;
   EPD_Buffer = (uint8_t*)ps_malloc(bufferSize);
   if (EPD_Buffer != NULL) {
@@ -104,9 +126,11 @@ void clearScreenAndShutdown() {
   esp_sleep_enable_ext0_wakeup((gpio_num_t)BOOT_BTN, 0);
   esp_deep_sleep_start();
 }
+
 void checkManagementMode() {
   web_exit_request = false;
   sdSPI.begin(SD_SCK, SD_MISO, SD_MOSI, SD_CS);
+
   if (SD.begin(SD_CS, sdSPI)) {
     if (!SD.exists("/.thumbnails")) { SD.mkdir("/.thumbnails"); }
     MSC.vendorID("ESP32");
@@ -118,6 +142,7 @@ void checkManagementMode() {
     MSC.mediaPresent(true);
     MSC.begin(SD.numSectors(), SD.sectorSize());
   }
+  
   USB.begin();
   bool is_usb_connected = false;
   for (int i = 0; i < 100; i++) {
@@ -127,6 +152,7 @@ void checkManagementMode() {
     }
     delay(10);
   }
+  
   if (is_usb_connected) {
     Serial.println("[System] USB Host detected. Entering U-Disk Mode...");
     uint32_t bufferSize = (SYS_WIDTH / 2) * SYS_HEIGHT;
@@ -157,6 +183,7 @@ void checkManagementMode() {
     String ssid = "";
     String pass = "";
     bool has_config = false;
+    
     // 1. 优先检查 SD 卡是否有新的 wifi.txt (用于首次配置或切换网络)
     if (SD.exists("/wifi.txt")) {
       File wifiFile = SD.open("/wifi.txt");
@@ -170,17 +197,17 @@ void checkManagementMode() {
           pass.trim();
         }
         wifiFile.close();
+        
         if (ssid.length() > 0) {
-          // 覆写 NVS 中的 WiFi 凭证
           prefs.putString("wifi_ssid", ssid);
           prefs.putString("wifi_pass", pass);
-          // 阅后即焚：删除明文文件保障安全
           SD.remove("/wifi.txt");
           has_config = true;
           Serial.println("[System] New WiFi config loaded from SD and saved to NVS. wifi.txt deleted.");
         }
       }
     }
+    
     // 2. 如果 SD 卡没有配置文件，尝试从 NVS 读取历史配置
     if (!has_config) {
       ssid = prefs.getString("wifi_ssid", "");
@@ -190,8 +217,10 @@ void checkManagementMode() {
         Serial.println("[System] WiFi config loaded from internal NVS.");
       }
     }
+    
     const unsigned char* target_icon = NULL;
     bool wifi_connected = false;
+    
     if (!has_config) {
       target_icon = wifi_no_config_icon_bmp;
     } else {
@@ -209,6 +238,7 @@ void checkManagementMode() {
         target_icon = wifi_off_icon_bmp;
       }
     }
+    
     uint32_t bufferSize = (SYS_WIDTH / 2) * SYS_HEIGHT;
     EPD_Buffer = (uint8_t*)ps_malloc(bufferSize);
     if (EPD_Buffer != NULL) {
@@ -228,8 +258,8 @@ void checkManagementMode() {
       DEV_Module_Exit();
       free(EPD_Buffer);
     }
+    
     if (wifi_connected) {
-      // 静态资源路由
       server.on("/", HTTP_GET, []() {
         server.send(200, "text/html", index_html);
       });
@@ -242,7 +272,7 @@ void checkManagementMode() {
       server.on("/cropper.min.js", HTTP_GET, []() {
         server.send(200, "application/javascript", cropper_js);
       });
-      // API 路由
+      
       server.on("/api/time", HTTP_POST, []() {
         if (server.hasArg("y") && server.hasArg("m") && server.hasArg("d") && server.hasArg("h") && server.hasArg("min") && server.hasArg("s")) {
           struct tm t;
@@ -260,10 +290,12 @@ void checkManagementMode() {
         }
         server.send(200, "text/plain", "Time synced");
       });
+      
       server.on("/api/exit", HTTP_POST, []() {
         server.send(200, "application/json", "{\"status\":\"ok\"}");
         web_exit_request = true;
       });
+      
       server.on("/api/img", HTTP_GET, []() {
         if (server.hasArg("name")) {
           String path = "/" + server.arg("name");
@@ -276,6 +308,7 @@ void checkManagementMode() {
         }
         server.send(404, "text/plain", "File Not Found");
       });
+      
       server.on("/api/thumb", HTTP_GET, []() {
         if (server.hasArg("name")) {
           String path = "/.thumbnails/" + server.arg("name");
@@ -288,6 +321,7 @@ void checkManagementMode() {
         }
         server.send(404, "text/plain", "Thumb Not Found");
       });
+      
       server.on("/api/list", HTTP_GET, []() {
         String json = "[";
         File root = SD.open("/");
@@ -315,8 +349,32 @@ void checkManagementMode() {
         json += "]";
         server.send(200, "application/json", json);
       });
+      
       server.on("/api/delete", HTTP_POST, []() {
-        if (server.hasArg("filename")) {
+        if (server.hasArg("filenames")) {
+          // 处理多选批量删除
+          String names = server.arg("filenames");
+          int start = 0;
+          int end = names.indexOf(',');
+          while (end != -1) {
+            String name = names.substring(start, end);
+            String path = "/" + name;
+            SD.remove(path);
+            String thumbName = name; thumbName.replace(".bmp", ".jpg"); thumbName.replace(".BMP", ".jpg");
+            if (SD.exists("/.thumbnails/" + thumbName)) SD.remove("/.thumbnails/" + thumbName);
+            start = end + 1;
+            end = names.indexOf(',', start);
+          }
+          // 处理最后一个文件
+          String name = names.substring(start);
+          String path = "/" + name;
+          SD.remove(path);
+          String thumbName = name; thumbName.replace(".bmp", ".jpg"); thumbName.replace(".BMP", ".jpg");
+          if (SD.exists("/.thumbnails/" + thumbName)) SD.remove("/.thumbnails/" + thumbName);
+          
+          server.send(200, "text/plain", "Deleted Batch");
+        } else if (server.hasArg("filename")) {
+          // 兼容列表原有单个卡片右侧的 Delete 按钮
           String originalName = server.arg("filename");
           String path = "/" + originalName;
           if (SD.remove(path)) {
@@ -325,12 +383,59 @@ void checkManagementMode() {
             thumbName.replace(".BMP", ".jpg");
             String thumbPath = "/.thumbnails/" + thumbName;
             if (SD.exists(thumbPath)) { SD.remove(thumbPath); }
-            server.send(200, "text/plain", "Deleted");
+            server.send(200, "text/plain", "Deleted Single");
           } else {
             server.send(500, "text/plain", "Failed");
           }
         }
       });
+
+      server.on("/api/play_now", HTTP_POST, []() {
+        if (server.hasArg("name")) {
+          String targetName = server.arg("name");
+          
+          // 重新构建播放列表以定位该图片的时间排序索引
+          std::vector<FileRecord> bmp_files;
+          File root = SD.open("/");
+          if (root && root.isDirectory()) {
+            File entry = root.openNextFile();
+            while (entry) {
+              if (!entry.isDirectory()) {
+                String fileName = entry.name();
+                String lowerName = fileName; lowerName.toLowerCase();
+                if (!fileName.startsWith(".") && lowerName.endsWith(".bmp")) {
+                  FileRecord record;
+                  record.path = String("/") + fileName;
+                  record.modTime = entry.getLastWrite();
+                  bmp_files.push_back(record);
+                }
+              }
+              entry.close();
+              entry = root.openNextFile();
+            }
+          }
+          
+          // 按时间倒序排列（保持和开机逻辑一致）
+          std::sort(bmp_files.begin(), bmp_files.end(), [](const FileRecord& a, const FileRecord& b) {
+            return a.modTime > b.modTime;
+          });
+
+          // 查找目标文件的索引
+          for (size_t i = 0; i < bmp_files.size(); i++) {
+            if (bmp_files[i].path == "/" + targetName) {
+              image_index = i;
+              prefs.putInt("img_idx", image_index);
+              break;
+            }
+          }
+          
+          web_exit_request = true;
+          server.send(200, "application/json", "{\"status\":\"ok\"}");
+        } else {
+          server.send(400, "text/plain", "Bad Request");
+        }
+      });
+      
       server.on("/api/sysinfo", HTTP_GET, []() {
         float volts = (analogReadMilliVolts(BAT_ADC_PIN) / 1000.0) * VOLTAGE_DIVIDER;
         int pct = getBatteryPercentage();
@@ -348,6 +453,7 @@ void checkManagementMode() {
         json += "}";
         server.send(200, "application/json", json);
       });
+      
       server.on("/api/settings", HTTP_POST, []() {
         if (server.hasArg("interval")) {
           int new_idx = server.arg("interval").toInt();
@@ -358,6 +464,7 @@ void checkManagementMode() {
         }
         server.send(200, "ok");
       });
+      
       // ==========================================
       // 极速流式大文件接收引擎
       // ==========================================
@@ -368,7 +475,6 @@ void checkManagementMode() {
         },
         []() {
           HTTPUpload& upload = server.upload();
-          // 静态变量：在多次回调之间保持文件处于"一直打开"的状态
           static File uploadFile;
           String filename = upload.filename;
           String filepath = "/" + filename;
@@ -376,28 +482,28 @@ void checkManagementMode() {
             filepath = "/.thumbnails/" + filename;
           }
           if (upload.status == UPLOAD_FILE_START) {
-            // 1. 开始接收：删掉旧图，只打开一次文件！
             if (SD.exists(filepath)) { SD.remove(filepath); }
             uploadFile = SD.open(filepath, FILE_WRITE);
             Serial.println("[Upload] Start: " + filepath);
           } else if (upload.status == UPLOAD_FILE_WRITE) {
-            // 2. 疯狂写入：只要文件开着，就直接倒数据，绝对不执行 close()！
             if (uploadFile) {
               uploadFile.write(upload.buf, upload.currentSize);
             }
           } else if (upload.status == UPLOAD_FILE_END) {
-            // 3. 接收完毕：终于可以关掉文件了，更新 SD 卡 FAT 表
             if (uploadFile) {
               uploadFile.close();
             }
             Serial.println("[Upload] Finished: " + filepath + " (" + String(upload.totalSize / 1024) + " KB)");
           }
         });
+      
       server.begin();
     }
+    
     unsigned long start_time = millis();
     while (millis() - start_time < (15 * 60 * 1000UL)) {
       if (wifi_connected) { server.handleClient(); }
+      
       if (digitalRead(BOOT_BTN) == LOW || web_exit_request) {
         if (digitalRead(BOOT_BTN) == LOW) {
           delay(50);
@@ -410,26 +516,36 @@ void checkManagementMode() {
       }
       delay(2);
     }
+    
     if (wifi_connected) { server.close(); }
     WiFi.disconnect(true);
+    
     if (web_exit_request) {
-      image_index = 0;
-      prefs.putInt("img_idx", image_index);
+      // 在这里不重置为 0，因为如果在 web 里触发了 play_now，
+      // image_index 已经是最新的目标了。保留它并在重启后播放即可。
+    } else {
+       // 自然超时退出的情况，是否归零取决于你的原设计
+       // image_index = 0;
+       // prefs.putInt("img_idx", image_index);
     }
     ESP.restart();
   }
 }
+
 void setup() {
   Serial.begin(115200);
   pinMode(BOOT_BTN, INPUT_PULLUP);
   SYS_WIDTH = EPD_13IN3E_WIDTH;
   SYS_HEIGHT = EPD_13IN3E_HEIGHT;
+  
   prefs.begin("epd_app", false);
   image_index = prefs.getInt("img_idx", 0);
   sleep_interval_index = prefs.getInt("interval", 2);
   bool need_tik = false;
+  
   esp_sleep_wakeup_cause_t wakeup_reason = esp_sleep_get_wakeup_cause();
   esp_reset_reason_t reset_reason = esp_reset_reason();
+  
   if (wakeup_reason == ESP_SLEEP_WAKEUP_EXT0) {
     long press_start = millis();
     bool is_long_press = false;
@@ -492,18 +608,22 @@ void setup() {
       esp_sleep_enable_timer_wakeup((uint64_t)INTERVAL_MAP[sleep_interval_index] * 1000000ULL);
       esp_deep_sleep_start();
     } else {
-      image_index = 0;
-      prefs.putInt("img_idx", image_index);
+      // 此处不再强行覆盖为 0，防止 /api/play_now 修改的值被覆盖
+      // image_index = 0; 
+      // prefs.putInt("img_idx", image_index);
       need_tik = true;
     }
   }
+  
   if (getBatteryPercentage() < LOW_BAT_THRESHOLD) showStatusIconAndSleep(low_bat_icon_bmp);
   if (need_tik) startTikLoop();
+  
   sdSPI.begin(SD_SCK, SD_MISO, SD_MOSI, SD_CS);
   if (!SD.begin(SD_CS, sdSPI)) {
     if (need_tik) stopTikLoop();
     showStatusIconAndSleep(no_storage_icon_bmp);
   }
+  
   std::vector<FileRecord> bmp_files;
   File root = SD.open("/");
   if (root && root.isDirectory()) {
@@ -524,17 +644,21 @@ void setup() {
       entry = root.openNextFile();
     }
   }
+  
   if (bmp_files.empty()) {
     SD.end();
     sdSPI.end();
     if (need_tik) stopTikLoop();
     showStatusIconAndSleep(no_image_icon_bmp);
   }
+  
   std::sort(bmp_files.begin(), bmp_files.end(), [](const FileRecord& a, const FileRecord& b) {
     return a.modTime > b.modTime;
   });
+  
   image_index = image_index % bmp_files.size();
   String targetFile = bmp_files[image_index].path;
+  
   uint32_t bufferSize = (SYS_WIDTH / 2) * SYS_HEIGHT;
   EPD_Buffer = (uint8_t*)ps_malloc(bufferSize);
   if (EPD_Buffer != NULL) {
@@ -552,6 +676,7 @@ void setup() {
       uint16_t depth = read16(bmpFile);
       bmpFile.seek(30);
       uint32_t comp = read32(bmpFile);
+      
       if ((depth == 24 || depth == 32) && comp == 0) {
         need_rotate = (img_w < img_h) != (SYS_WIDTH < SYS_HEIGHT);
         bmpFile.seek(dataOffset);
@@ -587,6 +712,7 @@ void setup() {
     }
     SD.end();
     sdSPI.end();
+    
     DEV_Module_Init();
     delay(200);
     EPD_13IN3E_Init();
@@ -595,9 +721,12 @@ void setup() {
     DEV_Module_Exit();
     free(EPD_Buffer);
   }
+  
   if (need_tik) stopTikLoop();
+  
   esp_sleep_enable_ext0_wakeup((gpio_num_t)BOOT_BTN, 0);
   esp_sleep_enable_timer_wakeup((uint64_t)INTERVAL_MAP[sleep_interval_index] * 1000000ULL);
   esp_deep_sleep_start();
 }
+
 void loop() {}
