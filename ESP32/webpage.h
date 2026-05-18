@@ -362,9 +362,31 @@ const char index_html[] PROGMEM = R"=====(
         const btn = document.getElementById('btnSave');
         const btnText = document.getElementById('btnText');
         const progress = document.getElementById('saveProgress');
+        
+        // 获取需要禁用的其他交互元素
+        const btnClear = document.getElementById('btnClear');
+        const btnP = document.getElementById('btnP');
+        const btnL = document.getElementById('btnL');
+        const wrapper = document.getElementById('wrapper');
+
+        // ==========================================
+        // 1. 开始上传前：锁定所有交互状态
+        // ==========================================
         btn.disabled = true;
+        btnClear.disabled = true;
+        btnP.disabled = true;
+        btnL.disabled = true;
+        
+        // 核心：禁用 Cropper.js 实例的拖拽和缩放
+        if (cropper) cropper.disable(); 
+        
+        // 视觉反馈：让图片区域变暗并禁用鼠标事件
+        wrapper.style.opacity = '0.6';
+        wrapper.style.pointerEvents = 'none';
+
         progress.style.width = '0%';
         btnText.innerText = (currentLang === 'zh' ? '正在保存...' : 'Saving...');
+
         try {
           const w = mode === 'L' ? 1600 : 1200, h = mode === 'L' ? 1200 : 1600;
           const cvs = cropper.getCroppedCanvas({ width: w, height: h });
@@ -402,7 +424,16 @@ const char index_html[] PROGMEM = R"=====(
         } catch (error) {
           alert("Upload failed: " + error.message);
         } finally {
+          // ==========================================
+          // 2. 结束（成功或失败）：恢复交互状态
+          // ==========================================
           btn.disabled = false;
+          btnClear.disabled = false;
+          btnP.disabled = false;
+          btnL.disabled = false;
+          wrapper.style.opacity = '1';
+          wrapper.style.pointerEvents = 'auto';
+          
           progress.style.width = '0%';
           btnText.innerText = dict[currentLang].btnSave;
           resetImage(); 
