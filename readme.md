@@ -1,6 +1,6 @@
 🌍 English | [中文](https://github.com/teatall/13.3inch_e-Paper_E-Frame/blob/main/readme.zh.md)
 
-# ESP32-S3 13.3" Color E-Paper Digital Photo Frame (V1.1.1)
+# ESP32-S3 13.3" Color E-Paper Digital Photo Frame
 
 This is an open-source digital photo frame project based on the [ESP32-S3 and a 13.3-inch Full-Color E-Paper display](https://www.waveshare.net/wiki/13.3inch_e-Paper_HAT+_(E)_Manual). The project not only supports cyclic playback of images from a local SD card but also features a complete built-in Web management backend. It supports wireless uploading, online cropping, progress display, and automatic system time synchronization. This project was developed with the assistance of Google Gemini.
 
