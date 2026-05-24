@@ -32,10 +32,10 @@ body{font-family:-apple-system,system-ui,sans-serif;background-color:var(--bg);c
 button:disabled,input:disabled{cursor:not-allowed;}
 .btn.btn-sm{padding:.4rem 1rem;font-size:.9rem;line-height:1rem;font-weight:500;}
 .btn.btn-xs{padding:.3rem .8rem;font-size:.75rem;line-height:.8rem;font-weight:500;border-radius:3px;}
-.btn-group{display:flex;}
+.btn-group{display:flex;border-radius:4px 4px 0 0;overflow:hidden;position:relative}
 .btn-group>.btn:not(:first-child){border-left:1px solid rgba(90,90,90,.3);border-top-left-radius:0;border-bottom-left-radius:0}
 .btn-group>.btn:not(:last-child){border-top-right-radius:0;border-bottom-right-radius:0}
-.btn-primary{--btn-background:var(--accent);--btn-text:#fff;position:relative;overflow:hidden}
+.btn-primary{--btn-background:var(--accent);--btn-text:#fff;}
 .btn-primary:hover:not(:disabled){--btn-background:var(--accent-hover);}
 .btn-secondary{--btn-background:var(--secondary);--btn-text:var(--text);}
 .btn-secondary:hover:not(:disabled){--btn-background:var(--secondary-hover);}
@@ -47,7 +47,7 @@ button:disabled,input:disabled{cursor:not-allowed;}
 .btn-danger-outline:hover:not(:disabled){--btn-background:var(--danger);--btn-text:var(--white);border:1px solid var(--danger);}
 .action-group .btn-main{flex:2 1 0}
 .action-group .btn-secondary{flex:1 1 0}
-.btn-primary > .upload-progress{position:absolute;top:0;left:0;height:4px;background-color:var(--success);width:0;transition:width .2s}
+.upload-progress{position:absolute;top:0;left:0;height:4px;background-color:var(--success);width:0;z-index:9;transition:width .2s}
 .img-row{display:flex;align-items:center;justify-content:space-between;padding:1rem 0;border-bottom:1px solid var(--border)}
 .img-info{display:flex;align-items:center;gap:.25rem;flex:1 1 0;min-width:0}
 .thumb-preview{width:60px;height:60px;background:#f8f9fa;border:2px solid var(--border);border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#adb5bd;cursor:zoom-in;transition:.2s;overflow:hidden;position:relative}

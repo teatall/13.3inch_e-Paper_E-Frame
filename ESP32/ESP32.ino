@@ -30,7 +30,7 @@ extern "C" bool tud_connected(void);
 WebServer server(80);
 
 // ==================== 系统配置与版本 ====================
-const char* FIRMWARE_VERSION = "v1.1.5";
+const char* FIRMWARE_VERSION = "v1.1.6";
 #define VOLTAGE_DIVIDER 3.263
 
 int image_index = 0;
@@ -46,7 +46,7 @@ SPIClass sdSPI(HSPI);
 #define SD_CS 15
 #define BOOT_BTN 0
 #define BAT_ADC_PIN 8
-#define LOW_BAT_THRESHOLD 10.0
+#define LOW_BAT_THRESHOLD 5.0
 #define CHARGE_STATE_PIN 38
 
 uint16_t SYS_WIDTH = 0;
@@ -608,9 +608,9 @@ void setup() {
       esp_sleep_enable_timer_wakeup((uint64_t)INTERVAL_MAP[sleep_interval_index] * 1000000ULL);
       esp_deep_sleep_start();
     } else {
-      // 此处不再强行覆盖为 0，防止 /api/play_now 修改的值被覆盖
-      // image_index = 0; 
-      // prefs.putInt("img_idx", image_index);
+      // 强行覆盖为 0
+      image_index = 0; 
+      prefs.putInt("img_idx", image_index);
       need_tik = true;
     }
   }

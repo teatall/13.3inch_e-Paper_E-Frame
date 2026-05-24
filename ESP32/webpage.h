@@ -16,7 +16,7 @@ const char index_html[] PROGMEM = R"=====(
       <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
          <symbol id="power" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M18.36 4.64a9 9 0 1 1-12.73 0"></path><line x1="12" y1="2" x2="12" y2="12"></line></symbol>
          <symbol id="vars" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h12m0 0a3 3 0 1 0 6 0 3 3 0 1 0-6 0zm-6 8h12M9 16a3 3 0 1 1-6 0 3 3 0 1 1 6 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
-         <symbol id="earth" viewBox="0 0 24 24" stroke="currentColor" fill="none"><path d="M14.645 2.428a8.1 8.1 0 0 0-1.61-.3 9.332 9.332 0 0 0-3.6.28l-.07.02a9.928 9.928 0 0 0 .01 19.15 9.091 9.091 0 0 0 2.36.34 1.274 1.274 0 0 0 .27.02 9.65 9.65 0 0 0 2.63-.36 9.931 9.931 0 0 0 .01-19.15zm-.27.96a8.943 8.943 0 0 1 5.84 5.11h-4.26a13.778 13.778 0 0 0-2.74-5.35 8.254 8.254 0 0 1 1.16.24zm-2.37-.09a12.78 12.78 0 0 1 2.91 5.2h-5.84a12.545 12.545 0 0 1 2.93-5.198zm3.16 6.2a13.193 13.193 0 0 1 0 5.01h-6.32a12.185 12.185 0 0 1-.25-2.5 12.353 12.353 0 0 1 .25-2.51zm-5.6-6.09l.07-.02a9.152 9.152 0 0 1 1.16-.23A13.618 13.618 0 0 0 8.045 8.5H3.8a9 9 0 0 1 5.765-5.092zm-6.5 8.6a8.71 8.71 0 0 1 .37-2.51h4.39a13.95 13.95 0 0 0-.23 2.51 13.757 13.757 0 0 0 .23 2.5h-4.39a8.591 8.591 0 0 1-.37-2.5zm6.57 8.61a8.9 8.9 0 0 1-5.84-5.11h4.24a13.632 13.632 0 0 0 2.77 5.35 8.1 8.1 0 0 1-1.17-.24zm-.56-5.11h5.84a12.638 12.638 0 0 1-2.91 5.21 12.872 12.872 0 0 1-2.93-5.21zm5.3 5.11a11.551 11.551 0 0 1-1.17.24 13.8 13.8 0 0 0 2.75-5.35h4.26a8.924 8.924 0 0 1-5.84 5.11zm1.8-6.11a13.611 13.611 0 0 0 0-5.01h4.39a8.379 8.379 0 0 1 .37 2.51 8.687 8.687 0 0 1-.36 2.5z"/></symbol>
+         <symbol id="earth" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" ><path d="M22.812 12A10.812 10.812 0 0 1 12 22.812M22.812 12A10.812 10.812 0 0 0 12 1.188M22.812 12c0 1.991-4.84 3.604-10.812 3.604S1.188 13.991 1.188 12m21.625 0c0-1.991-4.84-3.604-10.812-3.604S1.188 10.009 1.188 12M12 22.812A10.812 10.812 0 0 1 1.188 12M12 22.812c-1.991 0-3.604-4.84-3.604-10.812S10.009 1.188 12 1.188m0 21.625c1.991 0 3.604-4.84 3.604-10.812S13.991 1.188 12 1.188M1.188 12A10.812 10.812 0 0 1 12 1.188"/></symbol>
       </svg>
       <div class="container" id="appContainer">
          <div class="header">
@@ -52,23 +52,24 @@ const char index_html[] PROGMEM = R"=====(
                <button class="btn btn-secondary" id="btnClear" onclick="resetImage()" data-i18n="btnClear">Clear</button>
                <div class="btn-group btn-main">
                   <button class="btn btn-primary btn-main" id="btnSave" onclick="processAndUpload()">
-                     <div class="upload-progress" id="saveProgress"></div>
                      <span id="btnText" data-i18n="btnSave">Save</span>
+                  </button>
+                  <div class="upload-progress" id="saveProgress"></div>
                   <button class="btn btn-primary btn-sm" onclick="showVarGroup()">
-                     <svg width="16" height="16" style="vertical-align:middle;"><use xlink:href="#vars"></use></svg></button>
+                     <svg width="16" height="16" style="vertical-align:middle;"><use xlink:href="#vars"></use></svg>
                   </button>
                </div>
             </div>
             <div id="varGroup" class="image-var-group hidden">
                <div class="slider-container">
                   <label for="gamma" data-i18n="varGamma">Gamma</label>
-                  <input type="range" id="gamma" min="0" max="1" step="0.01" value="0.82">
-                  <div class="slide-display">0.82</div>
+                  <input type="range" id="gamma" min="0" max="1" step="0.01" value="0.82" oninput="applyImageVar('gamma')">
+                  <div id="gammaDisplay" class="slide-display">0.82</div>
                </div>
                <div class="slider-container">
                   <label for="saturation" data-i18n="varSaturation">Saturation</label>
-                  <input type="range" id="saturation" min="0" max="200" step="10" value="100">
-                  <div class="slide-display">100</div>
+                  <input type="range" id="saturation" min="0" max="200" step="10" value="100" oninput="applyImageVar('saturation')">
+                  <div id="saturationDisplay" class="slide-display">100</div>
                </div>
             </div>
          </div>
@@ -107,8 +108,8 @@ const char index_html[] PROGMEM = R"=====(
       </div>
       <script>
          const dict = {
-           "en": { tabUpload: "Upload", tabGallery: "Gallery", tabSettings: "Settings", btnExit: "Exit", optLandscape: "Landscape", optPortrait: "Portrait", uploadHint: "Click or Drag & Drop Image Here", btnClear: "Clear", btnSave: "Save", varGamma: "Gamma", varSaturation: "Saturation", galleryHint: "Photos on SD Card", btnDelete: "Delete", sysStatus: "System Status", lblVersion: "Firmware Version", lblBattery: "Battery", lblStorage: "Storage Usage", lblWifi: "WiFi Signal", playSettings: "Playback Settings", lblInterval: "Switch Interval", btnSaveSettings: "Save Settings", goodbyeTitle: "Exited", goodbyeText: "Refreshing screen. You can close this page.", charging: "Charging", timeOpts: ["10 Min", "30 Min", "1 Hour", "2 Hours", "3 Hours", "6 Hours", "12 Hours", "24 Hours"] },
-           "zh": { tabUpload: "上传", tabGallery: "照片列表", tabSettings: "设置", btnExit: "退出", optLandscape: "横向", optPortrait: "纵向", uploadHint: "点击或拖拽图片至此", btnClear: "清除", btnSave: "保存", varGamma: "Gamma", varSaturation: "Saturation", galleryHint: "已有照片", btnDelete: "删除", sysStatus: "系统状态", lblVersion: "系统版本号", lblBattery: "电池电量", lblStorage: "存储状况", lblWifi: "信号强度 (dBm)", playSettings: "播放设置", lblInterval: "换图间隔", btnSaveSettings: "保存设置", goodbyeTitle: "已退出管理模式", goodbyeText: "相框正在刷新屏幕。您可以关闭此页面。", charging: "充电中", timeOpts: ["10 分钟", "30 分钟", "1 小时", "2 小时", "3 小时", "6 小时", "12 小时", "24 小时"] }
+           "en": { tabUpload: "Upload", tabGallery: "Gallery", tabSettings: "Settings", btnExit: "Exit", optLandscape: "Landscape", optPortrait: "Portrait", uploadHint: "Click or Drag & Drop Image Here", btnClear: "Clear", btnSave: "Save", varGamma: "Gamma", varSaturation: "Saturation", galleryHint: "Photos in Gallery", btnDelete: "Delete", sysStatus: "System Status", lblVersion: "Firmware Version", lblBattery: "Battery", lblStorage: "Storage Usage", lblWifi: "WiFi Signal", playSettings: "Playback Settings", lblInterval: "Switch Interval", btnSaveSettings: "Save Settings", goodbyeTitle: "Exited", goodbyeText: "Refreshing screen. You can close this page.", charging: "Charging", timeOpts: ["10 Min", "30 Min", "1 Hour", "2 Hours", "3 Hours", "6 Hours", "12 Hours", "24 Hours"] },
+           "zh": { tabUpload: "上传", tabGallery: "照片列表", tabSettings: "设置", btnExit: "退出", optLandscape: "横向", optPortrait: "纵向", uploadHint: "点击或拖拽图片至此", btnClear: "清除", btnSave: "保存", varGamma: "明暗度", varSaturation: "饱和度", galleryHint: "已有照片", btnDelete: "删除", sysStatus: "系统状态", lblVersion: "系统版本", lblBattery: "电池电量", lblStorage: "存储状况", lblWifi: "信号强度 (dBm)", playSettings: "播放设置", lblInterval: "换图间隔", btnSaveSettings: "保存设置", goodbyeTitle: "已退出", goodbyeText: "相框正在刷新屏幕。您可以关闭此页面。", charging: "充电中", timeOpts: ["10 分钟", "30 分钟", "1 小时", "2 小时", "3 小时", "6 小时", "12 小时", "24 小时"] }
          };
          
          let currentLang = "en";
@@ -128,6 +129,24 @@ const char index_html[] PROGMEM = R"=====(
          }
          
          function updateTimeText() { const slider = document.getElementById('timeSlider'); document.getElementById('timeValueDisplay').innerText = dict[currentLang].timeOpts[slider.value]; }
+         
+         function applyImageVar(id) {
+            // 1. 更新显示的数值
+            document.getElementById(id + 'Display').innerText = document.getElementById(id).value;
+
+            // 2. 获取两个滑块的当前值
+            const gammaVal = parseFloat(document.getElementById('gamma').value);
+            const satVal = document.getElementById('saturation').value; // 0-200
+
+            // 3. 构建 CSS 滤镜 (视觉欺骗)
+            // Saturation 直接对应 CSS saturate(x%)
+            // Gamma (0~1): 值越小画面越亮。0.82 默认时不改变亮度(1.0)，向 0 滑动时提亮，向 1 滑动时变暗。
+            const cssBrightness = 1 + (0.82 - gammaVal) * 1.5; 
+
+            // 4. 将滤镜应用到整个预览区域
+            const wrapper = document.getElementById('wrapper');
+            wrapper.style.filter = `saturate(${satVal}%) brightness(${cssBrightness})`;
+         }
          
          // ==========================================
          // 🚀 图库与多选逻辑
@@ -236,7 +255,7 @@ const char index_html[] PROGMEM = R"=====(
                  document.getElementById('goodbyeScreen').style.display = 'block';
                });
            } else if (selectedFiles.size > 1) {
-             if (!confirm(currentLang === 'zh' ? '确定删除选中的照片吗？' : 'Delete selected photos?')) return;
+             if (!confirm(currentLang === 'zh' ? '确定删除选中的照片？' : 'Delete selected photos?')) return;
              const params = new URLSearchParams();
              params.append('filenames', Array.from(selectedFiles).join(','));
              fetch('/api/delete', { method: 'POST', body: params }).then(() => loadGallery());
@@ -244,7 +263,7 @@ const char index_html[] PROGMEM = R"=====(
          }
          
          function deleteFile(name) {
-           if(!confirm(currentLang==='zh'?'确定删除照片吗？':'Delete this photo?')) return;
+           if(!confirm(currentLang==='zh'?'确定删除照片？':'Delete this photo?')) return;
            const params = new URLSearchParams(); params.append('filename', name);
            fetch('/api/delete', { method: 'POST', body: params }).then(() => loadGallery());
          }
@@ -333,6 +352,15 @@ const char index_html[] PROGMEM = R"=====(
            document.getElementById('varGroup').classList.add('hidden');
            hintArea.style.display = 'flex';
            wrapper.classList.add('empty-state');
+           resetImageFilter();
+         }
+                  
+         function resetImageFilter() {
+           document.getElementById('wrapper').style.filter = 'none';
+           document.getElementById('gamma').value = 0.82;
+           document.getElementById('gammaDisplay').innerText = '0.82';
+           document.getElementById('saturation').value = 100;
+           document.getElementById('saturationDisplay').innerText = '100';
          }
 
          function showVarGroup() {
@@ -352,41 +380,15 @@ const char index_html[] PROGMEM = R"=====(
            fetch('/api/time?' + params.toString(), { method: 'POST' }).catch(()=>{});
          }
          
-         /*
-         let savingInterval = null;
-         function setUploadingState(isUploading) {
-           const btnSave = document.getElementById('btnSave');
-           const btnClear = document.getElementById('btnClear');
-           if (isUploading) {
-             btnSave.disabled = true;
-             btnClear.disabled = true;
-             btnClear.style.opacity = "0.5"; 
-             btnClear.style.cursor = "not-allowed";
-             btnSave.style.cursor = "not-allowed";
-             let dotCount = 1;
-             btnSave.innerText = "Saving.";
-             savingInterval = setInterval(() => {
-               dotCount = (dotCount % 3) + 1;
-               btnSave.innerText = "Saving" + ".".repeat(dotCount);
-             }, 400);
-           } else {
-             clearInterval(savingInterval);
-             btnSave.disabled = false;
-             btnClear.disabled = false;
-             btnClear.style.opacity = "1";
-             btnSave.style.cursor = "pointer";
-             btnSave.innerText = dict[currentLang].btnSave; 
-           }
-         }*/
-         
          async function processAndUpload() {
            //const btn = document.getElementById('btnSave');
            //const btnText = document.getElementById('btnText');
            //const btnClear = document.getElementById('btnClear');
            const allInputs = document.querySelectorAll('button, input');
            const progress = document.getElementById('saveProgress');
-           //btn.disabled = true;
-           //btnClear.disabled = true;
+           if (cropper) {
+             cropper.disable();
+           }
            allInputs.forEach(element => {
              element.disabled = true;
            });
@@ -396,7 +398,9 @@ const char index_html[] PROGMEM = R"=====(
              const w = mode === 'L' ? 1600 : 1200, h = mode === 'L' ? 1200 : 1600;
              const cvs = cropper.getCroppedCanvas({ width: w, height: h });
              const imgData = cvs.getContext('2d').getImageData(0, 0, w, h);
-             brightenForEink(imgData);
+             const currentGamma = parseFloat(document.getElementById('gamma').value);
+             const currentSaturation = parseFloat(document.getElementById('saturation').value) / 100.0;
+             brightenForEink(imgData, currentGamma, currentSaturation);
              applyDither(imgData);
              const bmpBlob = createBMP(w, h, imgData.data);
              const thumbBlob = await new Promise(resolve => {
@@ -440,16 +444,34 @@ const char index_html[] PROGMEM = R"=====(
            }
          }
          
-         function brightenForEink(imgData, gamma = 0.82) {
+         function brightenForEink(imgData, gamma, saturation) {
            const { data } = imgData;
            const lut = new Uint8Array(256);
+           
            for (let i = 0; i < 256; i++) {
              lut[i] = Math.round(Math.pow(i / 255, gamma) * 255);
            }
+           
            for (let i = 0; i < data.length; i += 4) {
-             data[i]     = lut[data[i]];
-             data[i + 1] = lut[data[i + 1]];
-             data[i + 2] = lut[data[i + 2]];
+             let r = lut[data[i]];
+             let g = lut[data[i + 1]];
+             let b = lut[data[i + 2]];
+             
+             if (saturation !== 1.0) {
+               const luma = 0.299 * r + 0.587 * g + 0.114 * b;
+               
+               r = luma + (r - luma) * saturation;
+               g = luma + (g - luma) * saturation;
+               b = luma + (b - luma) * saturation;
+               
+               r = Math.min(255, Math.max(0, r));
+               g = Math.min(255, Math.max(0, g));
+               b = Math.min(255, Math.max(0, b));
+             }
+             
+             data[i]     = r;
+             data[i + 1] = g;
+             data[i + 2] = b;
            }
          }
          
