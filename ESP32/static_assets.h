@@ -32,10 +32,10 @@ body{font-family:-apple-system,system-ui,sans-serif;background-color:var(--bg);c
 button:disabled,input:disabled{cursor:not-allowed;}
 .btn.btn-sm{padding:.4rem 1rem;font-size:.9rem;line-height:1rem;font-weight:500;}
 .btn.btn-xs{padding:.3rem .8rem;font-size:.75rem;line-height:.8rem;font-weight:500;border-radius:3px;}
-.btn-group{display:flex;border-radius:4px 4px 0 0;overflow:hidden;position:relative}
+.btn-group{display:flex;position:relative;border-radius:4px;overflow:hidden}
 .btn-group>.btn:not(:first-child){border-left:1px solid rgba(90,90,90,.3);border-top-left-radius:0;border-bottom-left-radius:0}
 .btn-group>.btn:not(:last-child){border-top-right-radius:0;border-bottom-right-radius:0}
-.btn-primary{--btn-background:var(--accent);--btn-text:#fff;}
+.btn-primary{--btn-background:var(--accent);--btn-text:#fff}
 .btn-primary:hover:not(:disabled){--btn-background:var(--accent-hover);}
 .btn-secondary{--btn-background:var(--secondary);--btn-text:var(--text);}
 .btn-secondary:hover:not(:disabled){--btn-background:var(--secondary-hover);}
@@ -63,7 +63,7 @@ button:disabled,input:disabled{cursor:not-allowed;}
 .slider-container{display:flex;align-items:center;gap:1rem;margin-top:1rem}
 input[type="range"]{flex:1 1 0;appearance:none;background-position:0 0;background-size:auto;background-repeat:repeat;background-attachment:scroll;background-origin:padding-box;background-clip:border-box;background-color:transparent;height:6px;border-radius:3px;background-image:linear-gradient(var(--border),var(--border));outline:currentcolor}
 input[type="range"]::-webkit-slider-thumb{appearance:none;height:18px;width:18px;border-radius:50%;background:var(--accent);cursor:pointer;box-shadow:0 0 0 4px #fff,0 0 0 5px var(--border)}
-.goodbye-screen{display:none;text-align:center;margin-top:5vh;color:var(--text);animation:.5s ease-out fadeIn}
+.goodbye-screen{display:none;text-align:center;margin-top:20vh;color:var(--text);position:fixed;top:0;width:100%;left:0;animation:.5s ease-out fadeIn}
 .goodbye-screen:before{content:'';width:3rem;height:3rem;background-color:var(--success);display:block;margin:.25rem auto;border-radius:50%;background-image:var(--tick-icon)}
 .img-checkbox[type=checkbox]{width:1.2rem;height:1.2rem;color:#1e90ff;vertical-align:middle;-webkit-appearance:none;background:none;border:0;outline:0;flex-grow:0;border-radius:50%;background-color:#FFF;transition:background 300ms;cursor:pointer}
 .img-checkbox[type=checkbox]::before{content:"";color:transparent;display:block;width:inherit;height:inherit;border-radius:inherit;border:0;background-color:transparent;background-size:contain;box-shadow:inset 0 0 0 1px #CCD3D8}
